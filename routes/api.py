@@ -1,7 +1,12 @@
 from flask import Blueprint, jsonify, request
 
 from services.tasks import create_task, get_task, list_tasks, update_task
-from services.users import get_user
+from services.users import (
+    get_notification_pref,
+    get_user,
+    list_users,
+    set_notification_pref,
+)
 from utils.errors import AppError
 
 api = Blueprint("api", __name__)
@@ -32,3 +37,16 @@ def update_task_route(task_id):
 @api.route("/users/<int:user_id>", methods=["GET"])
 def get_user_route(user_id):
     return jsonify(get_user(user_id))
+
+@api.route("/users", methods=["GET"])
+def list_users_route():
+    return jsonify(list_users())
+
+@api.route("/users/<int:user_id>/notifications", methods=["GET"])
+def get_notification_pref_route(user_id):
+    return jsonify(get_notification_pref(user_id))
+
+@api.route("/users/<int:user_id>/notifications", methods=["PATCH"])
+def set_notification_pref_route(user_id):
+    data = request.get_json(silent=True) or {}
+    return jsonify(set_notification_pref(user_id, data.get("notification_pref")))

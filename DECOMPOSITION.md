@@ -111,10 +111,20 @@ the two read paths are inconsistent.
 > and show me both outputs.
 
 **Output files:** `routes/api.py`
-**pytest -q result:** _paste here_
-**ruff findings count:** _paste here_
-**Fixes made in session (if any):** _none / describe_
-**Constraint followed?** _Yes / No — what it touched_
+**pytest -q result:** `46 passed in 0.30s`
+**ruff findings count:** 0 (`All checks passed!`)
+**Fixes made in session (if any):** none — green on first run.
+**Constraint followed?** Yes. `git status` showed only `M routes/api.py`. Each route calls exactly
+one service function; no route reads `USERS` or validates input. The PATCH route uses
+`request.get_json(silent=True) or {}` + `data.get("notification_pref")`, so a missing key/body
+passes `None` and the service raises the 422 — same pattern as the Task 1 task routes. Unasked
+extra: it rewrote the `services.users` import as a multi-line block (style only). SA-3 smoke-tested
+via the test client: `GET /api/users` 200, `GET /api/users/1/notifications` →
+`{"notification_pref": "none", "user_id": 1}`, PATCH with no key 422, PATCH user 999 404.
+**Near-violation (second time):** like SA-1, SA-3 flagged that CLAUDE.md says to paste the
+`pytest -q` line into DECOMPOSITION.md, and again chose the prompt's file constraint instead.
+**Observation:** a JSON body that is a non-empty list (e.g. `["email"]`) would make
+`data.get` raise `AttributeError` → 500. Not in the spec; noted for SA-4/Divergence.
 
 ---
 
