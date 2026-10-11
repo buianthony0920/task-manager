@@ -136,6 +136,21 @@ def test_patch_task_route_missing_priority():
     assert response.status_code == 422
     assert response.get_json()["error"] == "Invalid priority: is required"
 
+def test_patch_task_route_updates_priority():
+    client = app.test_client()
+    response = client.patch("/api/tasks/1", json={"priority": 2})
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["id"] == 1
+    assert body["priority"] == 2
+    saved = client.get("/api/tasks/1").get_json()
+    assert saved["priority"] == 2
+
 def test_patch_task_route_not_found():
     response = app.test_client().patch("/api/tasks/999", json={"priority": 2})
     assert response.status_code == 404
+
+def test_get_task_route_not_found():
+    response = app.test_client().get("/api/tasks/999")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Task not found"}

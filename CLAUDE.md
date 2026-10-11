@@ -6,6 +6,8 @@ under `/api`.
 ## Commands
 - Install (once): `python -m venv .venv` then `.venv\Scripts\pip install -r requirements.txt ruff`
 - Run tests: `.venv\Scripts\python -m pytest -v`. Run them before you finish any task. All must pass.
+- Quick check: `.venv\Scripts\python -m pytest -q`. Run it after every step and paste the
+  summary line into the log (PLAN_LOG.md / DECOMPOSITION.md).
 - Run one file: `.venv\Scripts\python -m pytest tests/test_tasks.py -v`
 - Lint: run `.venv\Scripts\ruff check .` before you start and again when you're done.
   Don't add any new findings, and don't fix old ones unless asked.
@@ -14,10 +16,13 @@ under `/api`.
 ## Architecture
 Three layers: routes → services → repositories. Each layer only calls the one below it.
 - `routes/api.py`: HTTP only. Read the request, call one service function, return
-  `jsonify(...)`. Only `get_task`, `create_task` and `get_user` have routes.
+  `jsonify(...)`. Routes exist for `get_task`, `list_tasks`, `create_task`, `update_task` and `get_user`.
   `process_order` has no route, so its errors never reach the API.
 - `services/*.py`: the logic and input checks. Errors are `AppError` subclasses.
   Use `services/users.py` as the example.
+- Tasks have `priority`: an int 1 (urgent)–5 (low), default 3. `_validate_priority` in
+  `services/tasks.py` is the single check — reuse it; routes pass raw values through
+  (`GET /tasks?priority=` passes the query string to `list_tasks`).
 - Repositories: there's no `repositories/` folder yet. The data lives in the dicts
   `TASKS` (`services/tasks.py`) and `USERS` (`services/users.py`). Only code in the same
   file may read or change them. To use another file's data, call its function instead
