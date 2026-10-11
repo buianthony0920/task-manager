@@ -80,10 +80,18 @@ and asked me instead. The two instructions pulled in opposite directions.
 > outputs.
 
 **Output files:** `services/users.py`
-**pytest -q result:** _paste here_
-**ruff findings count:** _paste here_
-**Fixes made in session (if any):** _none / describe_
-**Constraint followed?** _Yes / No — what it touched_
+**pytest -q result:** `46 passed in 0.30s`
+**ruff findings count:** 0 (`All checks passed!`)
+**Fixes made in session (if any):** none — green on first run.
+**Constraint followed?** Yes. `git status` showed only `M services/users.py`, and the diff is
+purely additive (three functions appended after `create_user`); `USERS`,
+`VALID_NOTIFICATION_PREFS`, `get_user`, `create_user` untouched. SA-2 also hand-checked each
+function (404 for a missing user, 422 for `"fax"` and `None`) but added no tests because `tests/`
+was off-limits. Hand-off check: signatures match the table exactly; `set_notification_pref`
+returns `get_notification_pref(user_id)`, so both return `{"user_id", "notification_pref"}`.
+**Observation:** `list_users()` returns raw records, so unlike `get_notification_pref` it does not
+normalize a missing/`None` pref to `"none"`. Harmless today (SA-1 gave every record the key) but
+the two read paths are inconsistent.
 
 ---
 
