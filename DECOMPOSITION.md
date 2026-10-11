@@ -163,13 +163,39 @@ so I kept them; the two "Fixes"/"Constraint" lines were left blank by SA-4 and f
 
 ## Divergence
 
-_Fill in after all four subagents have run. Cite subagent numbers and file names._
-
 **1. Did Claude follow the constraint field for every subagent?**
-_…_
+No — three of four did, one didn't. SA-1 (`services/users.py` only), SA-2 (additive functions in
+`services/users.py`, `USERS`/`get_user`/`create_user` untouched) and SA-3 (`routes/api.py` only)
+each showed a single modified file in `git status`. **SA-4 violated its Output boundary:** besides
+creating `tests/test_users.py`, it edited `DECOMPOSITION.md`, filling in its own `pytest -q` and
+ruff lines. The cause was a conflict I created myself: in Task 1 session 8 I added a line to
+CLAUDE.md's `## Commands` saying to paste the `pytest -q` summary into DECOMPOSITION.md after every
+step. SA-1 and SA-3 both noticed that line, saw it contradicted "in `services/users.py` only" /
+"in `routes/api.py` only", and refused. SA-4's constraint was written as a blacklist ("Do not
+modify any file in `services/`, `routes/`, `utils/`, or `tests/test_tasks.py`"), so
+`DECOMPOSITION.md` wasn't forbidden and CLAUDE.md won. Smaller unasked changes that stayed inside
+the allowed file: SA-1 reformatted `create_user`'s dict literal, and SA-3 rewrote the
+`services.users` import as a multi-line block.
 
 **2. Did any subagent's output break the next subagent's assumption? How did you recover?**
-_…_
+No hand-off broke; `pytest -q` was green after every subagent (46 → 46 → 46 → 60) and no fixes
+were needed in any session. The hand-offs held because each one was an exact name or signature:
+SA-1 handed over `VALID_NOTIFICATION_PREFS`, which SA-2 used unchanged; SA-2's three signatures
+matched the table exactly, so SA-3's routes imported them without edits; SA-3's 422/404 behavior
+matched what SA-4's tests asserted. One latent mismatch did slip through: SA-2's `list_users()`
+returns raw records, while `get_notification_pref` turns a missing/`None` pref into `"none"`. SA-3
+(`GET /api/users`) and SA-4 (`test_list_users_includes_notification_pref`) only work because SA-1
+gave every seed record the key — the two read paths would disagree for a record without it. A
+second unspecified edge: SA-3's PATCH route would 500 (not 422) on a JSON body that is a list,
+because `data.get` assumes a dict; nothing in the spec or SA-4's prompt covered it.
 
 **3. Would you write the decomposition differently a second time? What would you change?**
-_…_
+Three changes. (a) Write every constraint as an allow-list — "Modify only `tests/test_users.py`;
+any other file is out of bounds, including `DECOMPOSITION.md` and `CLAUDE.md`" — because SA-4's
+blacklist wording is exactly where the violation happened, while SA-1/SA-3's "only" wording held.
+(b) Remove or scope the CLAUDE.md "paste into DECOMPOSITION.md" instruction before running
+subagents, since a standing project rule competing with a per-session constraint is a conflict
+the agent has to resolve on its own. (c) Put the normalization rule ("every read path returns
+`"none"` for a missing pref") in SA-2's Task sentence instead of only in `get_notification_pref`,
+and add a "non-dict JSON body → 422" case to SA-3/SA-4, so hand-offs specify behavior and not just
+signatures.
