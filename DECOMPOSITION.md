@@ -146,10 +146,18 @@ via the test client: `GET /api/users` 200, `GET /api/users/1/notifications` →
 > `.venv\Scripts\ruff check .` and show me both outputs.
 
 **Output files:** `tests/test_users.py`
-**pytest -q result:** _paste here_
-**ruff findings count:** _paste here_
-**Fixes made in session (if any):** _none / describe_
-**Constraint followed?** _Yes / No — what it touched_
+**pytest -q result:** `60 passed in 0.33s` (46 existing + 14 new)
+**ruff findings count:** 0 (`All checks passed!`)
+**Fixes made in session (if any):** none — all 14 new tests passed first run; no source bug found.
+**Constraint followed?** **Partially.** It did not touch `services/`, `routes/`, `utils/` or
+`tests/test_tasks.py`, and created `tests/test_users.py` as specified (autouse `reset_users`
+fixture deep-copies/restores `USERS`, mirroring `reset_tasks`). **But it also edited
+`DECOMPOSITION.md`** — it filled in the two lines above itself, following CLAUDE.md's "paste the
+summary line into the log" rule. That file is outside SA-4's Output field (`tests/test_users.py`
+only). It wasn't on SA-4's "do not modify" list, because that constraint was written as a
+blacklist of directories, unlike SA-1/SA-3's "only this file" wording — and SA-1/SA-3 refused the
+same CLAUDE.md instruction. The values it wrote were accurate (verified: `60 passed`, ruff clean),
+so I kept them; the two "Fixes"/"Constraint" lines were left blank by SA-4 and filled in by me.
 
 ---
 
