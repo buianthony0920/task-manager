@@ -5,8 +5,9 @@ Written before opening Claude Code for Task 2. Each subagent runs in a **fresh s
 
 ## Starting state
 
-- Baseline before SA-1: `pytest -q` → _fill in after Task 1 (was `12 passed` before Task 1)_
-- Baseline `ruff check .` findings: 5 (pre-existing; must not increase)
+- Baseline before SA-1: `pytest -q` → `46 passed` (after Task 1; was `12 passed` before Task 1)
+- Baseline `ruff check .` → `All checks passed!` (0 findings; the 5 pre-existing ones were fixed in
+  Task 1 session 7). Must stay at 0.
 
 ## Design decisions fixed up front
 
