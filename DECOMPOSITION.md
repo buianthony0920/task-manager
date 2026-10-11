@@ -45,10 +45,18 @@ Written before opening Claude Code for Task 2. Each subagent runs in a **fresh s
 > `.venv\Scripts\ruff check .` and show me both outputs.
 
 **Output files:** `services/users.py`
-**pytest -q result:** _paste here_
-**ruff findings count:** _paste here_
-**Fixes made in session (if any):** _none / describe_
-**Constraint followed?** _Yes / No — what it touched_
+**pytest -q result:** `46 passed in 0.34s`
+**ruff findings count:** 0 (`All checks passed!`)
+**Fixes made in session (if any):** none — green on first run.
+**Constraint followed?** Yes. `git status` showed only `M services/users.py`. Diff: added
+`VALID_NOTIFICATION_PREFS` below the import, `"notification_pref": "none"` on users 1–2 (ids/names/
+emails unchanged), and `create_user` stores `"notification_pref": "none"`; no new functions,
+signature unchanged. Side note: `create_user`'s dict literal was reformatted onto multiple lines
+(style only, not asked for).
+**Near-violation:** CLAUDE.md's `## Commands` (added in Task 1 session 8) says to paste the
+`pytest -q` summary into DECOMPOSITION.md after every step. SA-1 noticed this conflicted with
+"`services/users.py` only" and chose the prompt's constraint — it did not edit DECOMPOSITION.md
+and asked me instead. The two instructions pulled in opposite directions.
 
 ---
 
