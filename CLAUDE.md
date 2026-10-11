@@ -6,8 +6,9 @@ under `/api`.
 ## Commands
 - Install (once): `python -m venv .venv` then `.venv\Scripts\pip install -r requirements.txt ruff`
 - Run tests: `.venv\Scripts\python -m pytest -v`. Run them before you finish any task. All must pass.
-- Quick check: `.venv\Scripts\python -m pytest -q`. Run it after every step and paste the
-  summary line into the log (PLAN_LOG.md / DECOMPOSITION.md).
+- Quick check: `.venv\Scripts\python -m pytest -q`. Run it after every step and report the
+  summary line in your reply. The human records it in the log; don't edit log files yourself.
+- Run the user tests: `.venv\Scripts\python -m pytest tests/test_users.py -q`
 - Run one file: `.venv\Scripts\python -m pytest tests/test_tasks.py -v`
 - Lint: run `.venv\Scripts\ruff check .` before you start and again when you're done.
   Don't add any new findings, and don't fix old ones unless asked.
@@ -30,6 +31,10 @@ Three layers: routes → services → repositories. Each layer only calls the on
 - `utils/errors.py`: `AppError(message, status_code)` is the base class.
   `NotFoundError(resource)` gives a 404, and `ValidationError(field, reason)` gives a 422.
   `handle_app_error` in `routes/api.py` turns any `AppError` into `{"error": message}`.
+- services/ ↔ routes/ boundary: `services/users.py` is the canonical pattern. It owns `USERS`,
+  `VALID_NOTIFICATION_PREFS` and every value check (`set_notification_pref` raises the 422), while
+  `routes/api.py` only does `request.get_json(silent=True) or {}`, passes raw values (even `None`)
+  to one service function, and never imports `USERS` or validates.
 
 ## Conventions
 - Follow `services/users.py` as the pattern for every service function.
@@ -56,3 +61,12 @@ Three layers: routes → services → repositories. Each layer only calls the on
 - Existing tests. Never delete one or make it weaker just to get the tests passing.
 - `requirements.txt` pins `flask==3.0.0` and `pytest==8.0.0`. Don't add or upgrade
   packages without asking.
+- `DECOMPOSITION.md`, `PLAN_LOG.md`, `RETRO.md`: never edit these during a coding task, even to
+  record pytest results. Put results in your reply. (Task 2 SA-4 edited `DECOMPOSITION.md`
+  while its job was `tests/test_users.py` only.)
+- When the task is `services/users.py`, don't touch `routes/api.py`, `tests/`, or
+  `DECOMPOSITION.md`. (SA-1 was pulled toward `DECOMPOSITION.md` by an old Commands line.)
+- When the task is `routes/api.py`, don't touch `services/users.py` or `DECOMPOSITION.md`, and
+  don't import `USERS` or check `notification_pref` values in the route. (SA-3 near-miss.)
+- When the task is `tests/test_users.py`, modify only that file. Not `services/`, `routes/`,
+  `tests/test_tasks.py` or any `.md` file. If a test fails because of source code, report it.
