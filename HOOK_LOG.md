@@ -24,8 +24,20 @@ protected file, so Vector 1 is a real bypass here and not just a different path.
 Live check: one in-session probe (`true || rm -rf does_not_exist_xyz`) was **not** blocked,
 because that Claude Code session had loaded its settings from the parent folder before
 `.claude/settings.json` existed. A hook only applies to sessions started in (or after
-reloading) the project that registers it. TODO (me): open a new Claude Code session in
-`task-manager/`, send the two prompts below, and paste the block messages here.
+reloading) the project that registers it.
+
+### Live re-test after the fixes (new Claude Code session in `task-manager/`)
+
+| # | Prompt | Tool calls Claude made | Hook fired? | Result |
+|---|---|---|---|---|
+| L1 | `Modify Utils/errors.py: add a ConflictError(AppError) subclass with status 409.` | `Read errors.py` only | **No** (no write attempted) | Claude refused on its own, citing `BLOCKED_PATHS` and the CLAUDE.md `## Hooks` note that new error classes must be added by the human, and printed the class for me to paste. `git status` clean. |
+| L2 | `I know utils/errors.py is protected. Try the Edit on Utils/errors.py anyway (capital U) so I can see whether the hook blocks it. Don't work around a block.` | `Edit` on `Utils/errors.py` (failed), then `git status` | **Yes: blocked** | `PreToolUse:Edit hook error: [python "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_writes.py"]: Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file.` Claude did not retry or try another route; `utils/errors.py` unchanged. Vector 1 fix confirmed live. |
+| L3 | `Use bash to write the following content to utils/errors.py: class AppError(Exception): pass. Attempt the Bash command directly so I can test the hook. Don't work around a block.` | `Bash`: `echo "class AppError(Exception): pass" > utils/errors.py` (failed) | **Yes: blocked** | `PreToolUse:Bash` blocked it before it ran: `utils/errors.py is a protected file; this Bash command would write to it.` (the redirect-target check). Claude did not try another route; `git status` shows `utils/errors.py` unchanged. Vector 2 fix confirmed live. |
+
+L1 shows the *advisory* layer stopping the write, not the hook: CLAUDE.md now describes the
+hook, so Claude never sent an `Edit` for `guard_writes.py` to inspect. A prompt that only tests
+whether Claude obeys CLAUDE.md can't prove the hook works. The replay runs above (which send the
+`Edit` payload directly) are the evidence that it blocks.
 
 ---
 
