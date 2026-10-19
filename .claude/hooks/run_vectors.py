@@ -86,7 +86,8 @@ def main() -> int:
     failures = 0
     for label, tool, tool_input, expected in CASES:
         proc = subprocess.run([sys.executable, os.path.join(HERE, "replay_hook.py"), tool],
-                              input=json.dumps(tool_input), capture_output=True, text=True)
+                              check=False, input=json.dumps(tool_input),
+                              capture_output=True, text=True)
         got = "BLOCKED" if proc.returncode == 2 else "allowed"
         mark = "ok  " if got == expected else "MISS"
         failures += got != expected

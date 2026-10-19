@@ -31,7 +31,7 @@ def main() -> int:
         for hook in entry["hooks"]:
             ran = True
             command = hook["command"].replace("$CLAUDE_PROJECT_DIR", ROOT)
-            proc = subprocess.run(command, input=payload, capture_output=True,
+            proc = subprocess.run(command, check=False, input=payload, capture_output=True,
                                   text=True, shell=True, env=env)
             verdict = "BLOCKED" if proc.returncode == 2 else "allowed"
             print(f"{tool_name}: exit {proc.returncode} ({verdict}) {proc.stderr.strip()}")

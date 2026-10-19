@@ -4,7 +4,8 @@ Claude Code sends the pending tool call as JSON on stdin. Exit 0 lets it run;
 exit 2 blocks it and shows stderr to Claude as the reason.
 
 Three guards:
-  1. Path guard    (Write/Edit/MultiEdit): BLOCKED_PATHS may not be written.
+  1. Path guard    (Write/Edit/MultiEdit, and Bash commands that write to a
+                   file): BLOCKED_PATHS may not be written, in any letter case.
   2. Bash guard    (Bash): BASH_RULES commands are refused.
   3. Content guard (Write/Edit/MultiEdit): files in CONTENT_GUARDED may not
      contain a hardcoded database connection string.
@@ -74,8 +75,8 @@ BASH_RULES = [
      "rm with both -r and -f is not allowed. Delete specific files instead."),
     ("git-force-push",
      lambda cmd, segs: any(_is_force_push(t) for t in segs),
-     "git push --force / -f rewrites shared history on origin. Use --force-with-lease "
-     "only if the human asks."),
+     ("git push --force / -f rewrites shared history on origin. Use --force-with-lease "
+      "only if the human asks.")),
 ]
 
 
@@ -100,6 +101,41 @@ def _new_content(tool_input: dict) -> str:
     return "\n".join(p for p in parts if p)
 
 
+# Vector 2 fix: a Bash command can write a file without Write/Edit ever running.
+# Commands (or interpreters) that can modify a file named anywhere in their segment:
+# Lookarounds instead of \b so the "py" in "errors.py" is not read as a command.
+WRITING_CMDS = re.compile(
+    r"(?<![\w./-])(?:tee|cp|mv|dd|truncate|install|rm|ln|touch|patch|"
+    r"sed\s+(?:-\w+\s+)*-i|perl\s+(?:-\w+\s+)*-p?i|"
+    r"python3?|py|perl|ruby|node|"
+    r"set-content|add-content|out-file|new-item|copy-item|move-item|remove-item)(?![\w.-])",
+    re.IGNORECASE)
+# Shell redirection: > file, >> file, 2> file, &> file. Group 1 is the target.
+REDIRECT = re.compile(r"(?:\d|&)?>>?\s*['\"]?([^\s;&|'\"<>]+)")
+
+
+def _mentions_protected(text: str) -> str | None:
+    """Return the protected path named in text (any case, / or \\, ./ prefix), if any."""
+    norm = text.replace("\\", "/").casefold()
+    for path in BLOCKED:
+        if re.search(r"(?<![\w.-])" + re.escape(path) + r"(?![\w.])", norm):
+            return path
+    return None
+
+
+def _bash_writes_protected(command: str) -> str | None:
+    for segment in re.split(r"&&|\|\||[;|\n]", command):
+        for target in REDIRECT.findall(segment):
+            hit = _mentions_protected(target)
+            if hit:
+                return hit
+        if WRITING_CMDS.search(segment):
+            hit = _mentions_protected(segment)
+            if hit:
+                return hit
+    return None
+
+
 def block(reason: str) -> int:
     print(f"Blocked by .claude/hooks/guard_writes.py: {reason}", file=sys.stderr)
     return 2
@@ -117,6 +153,9 @@ def main() -> int:
         for name, check, reason in BASH_RULES:
             if check(command, segs):
                 return block(f"[{name}] {reason}")
+        hit = _bash_writes_protected(command)
+        if hit:
+            return block(f"{hit} is a protected file; this Bash command would write to it.")
         return 0
 
     file_path = tool_input.get("file_path", "")

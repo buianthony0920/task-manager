@@ -1,0 +1,31 @@
+﻿ok   control: utils/errors.py                      expected=BLOCKED  got=BLOCKED  Write: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file.
+ok   allowed: services/users.py                    expected=allowed  got=allowed  Edit: exit 0 (allowed)
+ok   V1 case: Utils/errors.py                      expected=BLOCKED  got=BLOCKED  Edit: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file.
+ok   V1 case: UTILS/ERRORS.PY                      expected=BLOCKED  got=BLOCKED  Write: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file.
+ok   V1 case: Requirements.TXT                     expected=BLOCKED  got=BLOCKED  Write: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: requirements.txt is a protected file.
+ok   V2 bash: heredoc > utils/errors.py            expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file; this Bash command would write to it.
+ok   V2 bash: echo >> Utils/errors.py              expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file; this Bash command would write to it.
+ok   V2 bash: tee ./utils/errors.py                expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file; this Bash command would write to it.
+ok   V2 bash: python -c open(...).write            expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file; this Bash command would write to it.
+ok   V2 bash: sed -i requirements.txt              expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: requirements.txt is a protected file; this Bash command would write to it.
+ok   V2 bash: cp over utils\errors.py              expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file; this Bash command would write to it.
+MISS allowed: bash reads utils/errors.py           expected=allowed  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: utils/errors.py is a protected file; this Bash command would write to it.
+ok   allowed: bash runs pytest                     expected=allowed  got=allowed  Bash: exit 0 (allowed)
+ok   bash guard: DROP TABLE                        expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: [sql-destructive] DROP TABLE / TRUNCATE TABLE destroys data. Ask the human to run it.
+ok   bash guard: truncate  table (lower, 2 spaces) expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: [sql-destructive] DROP TABLE / TRUNCATE TABLE destroys data. Ask the human to run it.
+ok   bash guard: rm -rf                            expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: [rm-rf] rm with both -r and -f is not allowed. Delete specific files instead.
+ok   bash guard: rm -fr                            expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: [rm-rf] rm with both -r and -f is not allowed. Delete specific files instead.
+ok   bash guard: rm -r -f                          expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: [rm-rf] rm with both -r and -f is not allowed. Delete specific files instead.
+ok   bash guard: git push --force                  expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: [git-force-push] git push --force / -f rewrites shared history on origin. Use --force-with-lease only if the human asks.
+ok   bash guard: git push -f                       expected=BLOCKED  got=BLOCKED  Bash: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: [git-force-push] git push --force / -f rewrites shared history on origin. Use --force-with-lease only if the human asks.
+ok   allowed: git push --force-with-lease          expected=allowed  got=allowed  Bash: exit 0 (allowed)
+ok   allowed: rm one file                          expected=allowed  got=allowed  Bash: exit 0 (allowed)
+ok   allowed: grep -rf (not rm)                    expected=allowed  got=allowed  Bash: exit 0 (allowed)
+ok   allowed: word 'dropdown_table'                expected=allowed  got=allowed  Bash: exit 0 (allowed)
+ok   content: postgres URL in services/tasks.py    expected=BLOCKED  got=BLOCKED  Write: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: services/tasks.py would contain a hardcoded database connection string (postgresql:// or sqlite:///). Connection strings must come from environment variables, e.g. os.environ['DATABASE_URL'].
+ok   content: sqlite URL via Edit                  expected=BLOCKED  got=BLOCKED  Edit: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: services/tasks.py would contain a hardcoded database connection string (postgresql:// or sqlite:///). Connection strings must come from environment variables, e.g. os.environ['DATABASE_URL'].
+ok   content: MultiEdit with postgres+psycopg      expected=BLOCKED  got=BLOCKED  MultiEdit: exit 2 (BLOCKED) Blocked by .claude/hooks/guard_writes.py: services/tasks.py would contain a hardcoded database connection string (postgresql:// or sqlite:///). Connection strings must come from environment variables, e.g. os.environ['DATABASE_URL'].
+ok   content: env var is fine                      expected=allowed  got=allowed  Write: exit 0 (allowed)
+ok   content: other file not inspected             expected=allowed  got=allowed  Write: exit 0 (allowed)
+
+28/29 cases as expected
