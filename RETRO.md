@@ -36,6 +36,11 @@ first Vector 2 regex blocked `cat utils/errors.py` because `\bpy\b` matched insi
 `run_vectors.py` has allowed cases next to the blocked ones. And the live probe in my
 session (`true || rm -rf does_not_exist_xyz`) ran because that session was started before
 `settings.json` existed. A registered hook does nothing in a session that never loaded it.
+The live re-test in a fresh session (HOOK_LOG.md rows L1–L3) added one more wrinkle. For L1, the
+plain Vector 1 prompt, Claude refused without ever sending an `Edit`, because the new CLAUDE.md
+`## Hooks` paragraph told it the file was blocked. So the hook wasn't tested at all. Only when I
+asked it to try anyway did `PreToolUse:Edit` (L2) and `PreToolUse:Bash` (L3) actually block the
+writes. Seeing Claude obey a rule doesn't prove the hook enforces it.
 
 **3: Advisory vs. deterministic.** I left "The sample data in `TASKS` (ids 1–3) and `USERS`
 (ids 1–2)… task 2 must be 'Write report'" advisory in CLAUDE.md's Do-not-touch section. The

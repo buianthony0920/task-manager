@@ -77,7 +77,10 @@ while comparing as a different string.
 ```
 
 `realpath` also stops a symlink that points at `utils/errors.py` from getting around the check.
-After the fix, all three V1 cases print `exit 2 (BLOCKED)`.
+After the fix, all three V1 cases print `exit 2 (BLOCKED)`, and live row L2 shows the real
+`Edit` on `Utils/errors.py` blocked.
+
+**pytest -q after this fix** (checked out `c2360a9` in a temporary worktree): `60 passed in 0.59s`.
 
 ---
 
@@ -125,7 +128,10 @@ it blocks if
 allowed control `cat utils/errors.py` was **blocked** (`hook_runs/4a_fix_vector2_regression.txt`,
 28/29), because `\bpy\b` matches the `py` in `errors.py`. I swapped `\b` for the lookarounds
 `(?<![\w./-])` / `(?![\w.-])` so a command word can't be part of a file name. Reading protected
-files (`cat`, `grep`) is allowed again, and every V2 variant is blocked (29/29).
+files (`cat`, `grep`) is allowed again, and every V2 variant is blocked (29/29). Live row L3 shows
+the real `echo ... > utils/errors.py` blocked.
+
+**pytest -q after this fix** (`5411be2`): `60 passed in 0.50s` (`hook_runs/5_pytest_after_fix.txt`).
 
 **Known remaining gap:** this is still pattern matching on a string, so an obfuscated write like
 `p=utils; cat > $p/errors.py` or a base64-decoded script gets past it. See RETRO.md paragraph 4.
