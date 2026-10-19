@@ -1,49 +1,64 @@
-# RETRO.md — Plan Mode and Subagent Decomposition (PA5 Task 3A)
+# RETRO.md: Enforce, Automate, and Reflect (Week 6 Task 3A)
 
-**1 — Plan Mode value.** To be honest, none of my amendments saved me from a revert that was
-already happening. The one that mattered most was session 10 in `PLAN_LOG.md`. The first plan
-for `test_patch_task_route_updates_priority` only checked what the PATCH sent back. I rejected it
-and had it do a follow-up `GET /api/tasks/1` to make sure `priority` was actually `2`. Without
-that, the test would pass even if `update_task` returned the new value and never saved it to
-`TASKS`. That's the kind of bug you ship behind a green test and then have to revert later. The
-funny part is that reading the plans I *didn't* change caught more. In session 3 the plan skipped
-`request.args.get(..., type=int)` because Flask would quietly turn `?priority=abc` into "just
-return everything". In session 6 it noticed `create_task` already rejects `None`, so the fix only
-had to touch `routes/api.py`. And my session 8 amendment, where I added a CLAUDE.md line telling
-it to paste `pytest -q` results into `DECOMPOSITION.md`, actually caused a problem later. More on
-that in paragraph 3.
+(The Week 5 retrospective moved to `RETRO_W5.md`.)
 
-**2 — Plan Mode limits.** Session 3 is where the code didn't match the plan I approved. The plan
-said "if it's a string of digits, convert it with `int()`". The code in `list_tasks`
-(`services/tasks.py`) also added an `isascii()` check that wasn't in the plan anywhere. It turns
-out `"²".isdigit()` is `True` but `int("²")` crashes, so it was a good catch, but I didn't approve
-it. I only found it by comparing the diff to the plan line by line. Session 7 was a smaller
-version of the same thing: the plan said only import lines would change, but `ruff --fix` also
-reformatted the import in `tests/test_tasks.py` into a multi-line block. My takeaway is that Plan
-Mode only covers what the plan actually spells out. Anything below that level of detail is still
-up to Claude, and you only find out by reading the diff afterwards. Also, both of my amended
-plans (8 and 10) matched exactly, and every mismatch came from a plan I approved without pushing
-back. So the plan is really only as good as how carefully I read it.
+**1: Slash command value.** <!-- TODO (me): finish after filling COMMAND_LOG.md. Name the row
+(e.g. "row 2, `/scaffold-endpoint tags POST`"), say whether it stayed in scope, and quote what I
+changed in the command file. The part below is my draft of the comparison; edit it to match what
+actually happened. --> `/scaffold-endpoint` saved the most prompt-writing (COMMAND_LOG.md row
+__). Typed by hand, the same request needs about 40 lines: which four files to touch
+(`routes/api.py`, `services/<resource>.py`, `schemas/<resource>.py`, `tests/test_<resource>.py`),
+that the route copies the shape of the task routes and only does
+`request.get_json(silent=True) or {}` → one service call → `jsonify`, that `TASKS`/`USERS`
+must not be imported into the route, that no schema library may be added, and that the test has
+to assert `201` for POST and `200` otherwise. I would forget at least one of those every time.
+The "no `if` checks in the handler" line is the one that slipped in Week 5 (SA-3 near-miss in
+CLAUDE.md). With the command it's `/scaffold-endpoint tags POST`, and the constraints are the
+same every run, so a drift shows up as a fix to the command file and not as a new prompt I
+have to remember next time.
 
-**3 — Subagent value.** The most important boundary turned out to be "only touch these files",
-and SA-4 proved it. Remember the CLAUDE.md line from session 8 telling every session to paste
-its `pytest -q` result into `DECOMPOSITION.md`? SA-1 (told "in `services/users.py` only") and
-SA-3 (told "in `routes/api.py` only") both noticed it conflicted with their instructions and
-didn't do it. SA-4's constraint was a "don't touch" list instead ("Do not modify any file in
-`services/`, `routes/`, `utils/`, or `tests/test_tasks.py`"). `DECOMPOSITION.md` wasn't on that
-list, so SA-4 edited it anyway. The services/routes split between SA-2 and SA-3 held up too: the
-PATCH route just passes `data.get("notification_pref")` through, even when it's `None`, and
-`set_notification_pref` in `services/users.py` handles the 422. Running `pytest -q` after every
-subagent (46 → 46 → 46 → 60) meant that if something broke, I'd know exactly which layer did it.
-If I'd done the whole feature in one session, there would have been no per-step boundary to push
-back against the CLAUDE.md rule. Going by what SA-4 did, I'm pretty sure the CLAUDE.md rule
-would have won. I'd have ended up with data, service, route, test and log changes in one big diff
-and one test run at the end.
+**2: Hook reliability.** Both vectors got past the hook before I fixed it. Vector 1 was a
+straight bypass: `Utils/errors.py`, `UTILS/ERRORS.PY` and `Requirements.TXT` all came back
+`exit 0 (allowed)` in `hook_runs/1_baseline.txt`, even though on this NTFS checkout
+`ls Utils/errors.py` opens the real protected file. The hook compared strings
+case-sensitively while the file system matches names without caring about case. Vector 2 went
+in two steps. On the baseline the result was `no matcher matched, hook never ran`. After Part A
+added `Bash` to the matcher (`hook_runs/2_part_a.txt`), the hook *did* run and blocked
+`rm -rf` and `DROP TABLE` on the same run, but all six indirect writes (heredoc, `>>`, `tee`,
+`python -c`, `sed -i`, `cp`) were still allowed, because the path guard only reads
+`tool_input.file_path` and a Bash call doesn't have one. So "the rule is in settings.json"
+turned out to mean three separate things: the matcher has to include the tool, the hook has to
+read the right field for that tool, and the comparison has to match how the OS resolves names.
+Each one failed on its own. I also learned that the fix needs the same testing as the gap: my
+first Vector 2 regex blocked `cat utils/errors.py` because `\bpy\b` matched inside `errors.py`
+(`hook_runs/4a_fix_vector2_regression.txt`, 28/29). I only caught it because
+`run_vectors.py` has allowed cases next to the blocked ones. And the live probe in my
+session (`true || rm -rf does_not_exist_xyz`) ran because that session was started before
+`settings.json` existed. A registered hook does nothing in a session that never loaded it.
 
-**4 — Gap analysis.** The rule from Task 2 I'd most want enforced automatically is "a subagent
-can only modify the files in its Output field". It's the one that actually broke (SA-4 editing
-`DECOMPOSITION.md`), and SA-1 and SA-3 only followed it because they made a good call. **Hook:** a
-`PreToolUse` hook on `Edit`/`Write` that reads the current subagent's allowed files from
-`.claude/active_subagent.json` (like `["tests/test_users.py"]`) and blocks any edit to another
-file with exit code 2 and a message like "file outside SA-4's Output field". That would have
-stopped SA-4 before it touched `DECOMPOSITION.md`.
+**3: Advisory vs. deterministic.** I left "The sample data in `TASKS` (ids 1–3) and `USERS`
+(ids 1–2)… task 2 must be 'Write report'" advisory in CLAUDE.md's Do-not-touch section. The
+path guard can't hold it, because `services/tasks.py` has to stay writable (it's the
+`CONTENT_GUARDED` file, and `/add-field` is *supposed* to add a key to every sample row). A
+content regex can't tell "added `due_date: None` to row 2" apart from "renamed row 2's title".
+The rule is about meaning, not about a path or a string. I'll graduate it when an `Edit` whose
+`old_string` overlaps the `TASKS = {...}` literal changes an existing `"id"` or `"title"` value
+in even one logged run (COMMAND_LOG.md or a failure in `test_get_task_valid`, which asserts
+task 2 is "Write report"). At that point the check is worth writing: parse the `TASKS` dict before and after with
+`ast.literal_eval` inside the hook and block if any of ids 1–3 lost or changed an existing key's
+value. Adding new keys stays allowed.
+
+**4: Limits of hooks.** The rule I wanted to enforce was "Existing tests: never delete one or
+make it weaker. All 60 must still pass before you finish." PreToolUse was the wrong event and
+the wrong kind of check. It sees one tool call *before* it runs, so it can't know whether the
+suite still passes after the edit. It also can't tell weakening `pytest.raises(NotFoundError)`
+to `pytest.raises(Exception)` (forbidden) apart from the opposite change, which CLAUDE.md
+actually asks for. And `tests/` can't go in `BLOCKED_PATHS`, because `/scaffold-endpoint` and
+`/add-field` have to write new test files there. The right mechanism is a check after the work
+is done: a `Stop` hook that runs `pytest -q --collect-only` and `pytest -q`, and returns exit 2
+(so Claude has to keep working) if the collected count is below the recorded baseline (60) or
+anything fails. CI on push would be the backstop. The same idea covers the gap HOOK_LOG.md lists
+for Vector 2: `p=utils; cat > $p/errors.py` gets past my regex. The guarantee that can't be
+talked around is outside Claude Code: set `utils/errors.py` read-only at the OS level, or run
+Claude in a sandbox where that path isn't writable, and keep the hook as the early warning
+that explains *why* the write was refused.

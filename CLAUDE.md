@@ -13,6 +13,13 @@ under `/api`.
 - Lint: run `.venv\Scripts\ruff check .` before you start and again when you're done.
   Don't add any new findings, and don't fix old ones unless asked.
 - Run server: `.venv\Scripts\python app.py`, then open http://127.0.0.1:5000/api/tasks/1
+- `/audit-errors <file>`: make one `services/` file raise only `AppError` subclasses; skips
+  functions that are already correct. Not for `routes/` or `tests/`.
+- `/scaffold-endpoint <resource> <METHOD>`: add one new endpoint (route + service + schema +
+  happy-path test), e.g. `/scaffold-endpoint tags POST`. Not for changing an existing endpoint.
+- `/add-field <resource> <field> <allowed> <default>`: add one field to an existing resource
+  end to end, the way `priority` and `notification_pref` were added. Not for new resources.
+- Test the hook: `.venv\Scripts\python .claude\hooks\run_vectors.py` (all cases must say `ok`).
 
 ## Architecture
 Three layers: routes → services → repositories. Each layer only calls the one below it.
@@ -51,22 +58,30 @@ Three layers: routes → services → repositories. Each layer only calls the on
 - Undecided — ask, don't guess: whether completing a task that's already done in
   `process_order` is an error, and whether to trim spaces from titles.
 
+## Hooks
+`.claude/hooks/guard_writes.py` runs before every `Write`, `Edit`, `MultiEdit` and `Bash` call
+(registered in `.claude/settings.json`) and exits 2 to block it, so these rules hold even if
+Claude ignores this file. It blocks (1) writes to the files in `BLOCKED_PATHS`
+(`utils/errors.py`, `requirements.txt`, `DECOMPOSITION.md`, `PLAN_LOG.md`) in any letter case,
+including Bash redirects, `tee`, `cp`, `sed -i` or `python -c` writes; (2) Bash commands in
+`BASH_RULES`: `DROP/TRUNCATE TABLE`, `rm` with `-r` and `-f`, and `git push --force`/`-f`; and
+(3) a hardcoded `postgresql://` or `sqlite:///` string in any file in `CONTENT_GUARDED`
+(`services/tasks.py`). To protect another file, add its repo-relative path to `BLOCKED_PATHS`
+(or to `CONTENT_GUARDED` for a content check); to ban a command, add a
+`(name, check, reason)` tuple to `BASH_RULES`. Then add a blocked and an allowed case to
+`CASES` in `.claude/hooks/run_vectors.py` and run it until every line says `ok`. Since
+`utils/errors.py` is blocked, Claude can't add a new error class itself; ask the human.
+
 ## Do not touch
-- The constructors in `utils/errors.py`. `handle_app_error` reads `e.message` and
-  `e.status_code`. To add an error, make a new subclass.
 - The sample data in `TASKS` (ids 1–3) and `USERS` (ids 1–2). The tests need task 2 to
   be "Write report" and id 999 to not exist.
 - The signatures of `get_task`, `create_task`, `process_order`, `get_user` and
   `create_user`. The routes and tests call the task functions by position.
 - Existing tests. Never delete one or make it weaker just to get the tests passing.
-- `requirements.txt` pins `flask==3.0.0` and `pytest==8.0.0`. Don't add or upgrade
-  packages without asking.
-- `DECOMPOSITION.md`, `PLAN_LOG.md`, `RETRO.md`: never edit these during a coding task, even to
-  record pytest results. Put results in your reply. (Task 2 SA-4 edited `DECOMPOSITION.md`
-  while its job was `tests/test_users.py` only.)
-- When the task is `services/users.py`, don't touch `routes/api.py`, `tests/`, or
-  `DECOMPOSITION.md`. (SA-1 was pulled toward `DECOMPOSITION.md` by an old Commands line.)
-- When the task is `routes/api.py`, don't touch `services/users.py` or `DECOMPOSITION.md`, and
-  don't import `USERS` or check `notification_pref` values in the route. (SA-3 near-miss.)
+- `RETRO.md`, `COMMAND_LOG.md`, `HOOK_LOG.md`: never edit these during a coding task, even to
+  record pytest results. Put results in your reply.
+- When the task is `services/users.py`, don't touch `routes/api.py` or `tests/`.
+- When the task is `routes/api.py`, don't touch `services/users.py`, and don't import `USERS`
+  or check `notification_pref` values in the route. (SA-3 near-miss.)
 - When the task is `tests/test_users.py`, modify only that file. Not `services/`, `routes/`,
   `tests/test_tasks.py` or any `.md` file. If a test fails because of source code, report it.
