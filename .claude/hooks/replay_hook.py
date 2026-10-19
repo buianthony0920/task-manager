@@ -1,6 +1,7 @@
 """Replay a PreToolUse payload through .claude/settings.json the way Claude Code does.
 
-Usage: python .claude/hooks/replay_hook.py <tool_name> '<tool_input JSON>'
+Usage: python .claude/hooks/replay_hook.py <tool_name> ['<tool_input JSON>']
+       (omit the JSON to read it from stdin, which keeps Windows backslashes intact)
 
 Picks every PreToolUse entry whose matcher matches tool_name, runs its command
 with the payload on stdin, and prints the exit code and stderr. Exit 2 = blocked.
@@ -15,7 +16,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 
 def main() -> int:
-    tool_name, tool_input = sys.argv[1], json.loads(sys.argv[2])
+    tool_name = sys.argv[1]
+    tool_input = json.loads(sys.argv[2] if len(sys.argv) > 2 else sys.stdin.read())
     with open(os.path.join(ROOT, ".claude", "settings.json"), encoding="utf-8") as f:
         entries = json.load(f)["hooks"]["PreToolUse"]
 
