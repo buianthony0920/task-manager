@@ -2,11 +2,10 @@
 
 (The Week 5 retrospective moved to `RETRO_W5.md`.)
 
-**1: Slash command value.** <!-- TODO (me): finish after filling COMMAND_LOG.md. Name the row
-(e.g. "row 2, `/scaffold-endpoint tags POST`"), say whether it stayed in scope, and quote what I
-changed in the command file. The part below is my draft of the comparison; edit it to match what
-actually happened. --> `/scaffold-endpoint` saved the most prompt-writing (COMMAND_LOG.md row
-__). Typed by hand, the same request needs about 40 lines: which four files to touch
+**1: Slash command value.** `/scaffold-endpoint` saved the most prompt-writing (COMMAND_LOG.md
+row 2, `tags POST`). From two words it echoed `RESOURCE=tags METHOD=POST`, created exactly the
+four allowed files, wrote a three-line `create_tag_route` with no logic, and added a test
+asserting `201` and `name == "urgent"` (61 passed, ruff clean). Typed by hand, the same request needs about 40 lines: which four files to touch
 (`routes/api.py`, `services/<resource>.py`, `schemas/<resource>.py`, `tests/test_<resource>.py`),
 that the route copies the shape of the task routes and only does
 `request.get_json(silent=True) or {}` → one service call → `jsonify`, that `TASKS`/`USERS`
@@ -15,7 +14,9 @@ to assert `201` for POST and `200` otherwise. I would forget at least one of tho
 The "no `if` checks in the handler" line is the one that slipped in Week 5 (SA-3 near-miss in
 CLAUDE.md). With the command it's `/scaffold-endpoint tags POST`, and the constraints are the
 same every run, so a drift shows up as a fix to the command file and not as a new prompt I
-have to remember next time.
+have to remember next time. That's what happened in row 2: the one flaw, an unused
+`REQUIRED_FIELDS` in `schemas/tags.py`, came from my command's spec, so I fixed
+`scaffold-endpoint.md` once instead of remembering to leave it out of every future prompt.
 
 **2: Hook reliability.** Both vectors got past the hook before I fixed it. Vector 1 was a
 straight bypass: `Utils/errors.py`, `UTILS/ERRORS.PY` and `Requirements.TXT` all came back
@@ -41,7 +42,9 @@ session (`true || rm -rf does_not_exist_xyz`) ran because that session was start
 path guard can't hold it, because `services/tasks.py` has to stay writable (it's the
 `CONTENT_GUARDED` file, and `/add-field` is *supposed* to add a key to every sample row). A
 content regex can't tell "added `due_date: None` to row 2" apart from "renamed row 2's title".
-The rule is about meaning, not about a path or a string. I'll graduate it when an `Edit` whose
+The rule is about meaning, not about a path or a string. COMMAND_LOG.md row 3 shows the
+advisory rule holding: `/add-field tasks due_date ...` edited all three sample rows and only
+appended `"due_date": None`, with ids and titles untouched. I'll graduate it when an `Edit` whose
 `old_string` overlaps the `TASKS = {...}` literal changes an existing `"id"` or `"title"` value
 in even one logged run (COMMAND_LOG.md or a failure in `test_get_task_valid`, which asserts
 task 2 is "Write report"). At that point the check is worth writing: parse the `TASKS` dict before and after with

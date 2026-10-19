@@ -31,6 +31,9 @@ bad values raise a 422, and both behaviours are covered by tests. Files that cha
   only add the new key with DEFAULT.
 - Do not touch `utils/errors.py`, `requirements.txt`, `app.py`, existing tests or any `.md` file.
 - Use `ValidationError("FIELD", "<reason>")` for bad values. Never raise `ValueError`.
+- If DEFAULT is `None`, `data.get("FIELD")` can't tell "key left out" from "sent null", so
+  the update path can't both keep and clear the value. Before editing, ask which one an update
+  with a missing/null FIELD should do, and state the answer in the update function's docstring.
 
 ## Verification
 - After each of the three files, run `.venv\Scripts\python -m pytest -q` and report the summary line.

@@ -14,7 +14,8 @@ end to end. These files must be created or updated, and no others:
 2. **Service file:** `services/RESOURCE.py`. Create it if missing; add the one service function
    the handler calls, plus the in-memory data dict if the file is new.
 3. **Schema file:** `schemas/RESOURCE.py`. Create it if missing (and `schemas/__init__.py`).
-   It holds the record shape as a `TypedDict` and a `REQUIRED_FIELDS` tuple for the request body.
+   It holds the record shape as a `TypedDict`, used as the service function's return type.
+   Don't add field lists or validation here: the service does every value check.
    This repo has no schema library, and you must not add one.
 4. **Test file:** `tests/test_RESOURCE.py`. Add the happy-path test described under Verification.
 

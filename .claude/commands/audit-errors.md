@@ -36,6 +36,8 @@ If `$ARGUMENTS` is empty, stop and ask which file to audit. Do not pick one your
   that one assertion stricter. Never delete a test or loosen an assertion.
 - Do not change a function's signature or the sample data in `TASKS` / `USERS`.
 - Do not add new error classes. If none of the existing ones fits, stop and ask.
+- Problems that are not error-handling fixes (missing behaviour, feature changes, edge cases
+  that can't happen yet) go under an "Out of scope" heading in your reply. Don't fix them.
 
 ## Verification
 - After every function you change, run `.venv\Scripts\python -m pytest -q` and report the

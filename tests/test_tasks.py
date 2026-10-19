@@ -154,3 +154,37 @@ def test_get_task_route_not_found():
     response = app.test_client().get("/api/tasks/999")
     assert response.status_code == 404
     assert response.get_json() == {"error": "Task not found"}
+
+def test_existing_task_default_due_date():
+    assert get_task(2)["due_date"] is None
+
+def test_create_task_with_due_date():
+    task = create_task("Pay rent", 1, 3, "2026-11-01")
+    assert task["due_date"] == "2026-11-01"
+    assert TASKS[task["id"]]["due_date"] == "2026-11-01"
+
+def test_update_task_due_date():
+    assert update_task(1, 3, "2026-12-25")["due_date"] == "2026-12-25"
+
+@pytest.mark.parametrize("due_date", ["2026-13-01", "2026-02-30", "26-01-01",
+                                      "20260101", "tomorrow", "", 20260101, True])
+def test_create_task_invalid_due_date(due_date):
+    with pytest.raises(ValidationError):
+        create_task("Pay rent", 1, 3, due_date)
+
+def test_update_task_invalid_due_date():
+    with pytest.raises(ValidationError):
+        update_task(1, 3, "2026-02-30")
+
+def test_post_task_route_invalid_due_date():
+    response = app.test_client().post(
+        "/api/tasks", json={"title": "Pay rent", "user_id": 1, "due_date": "not-a-date"})
+    assert response.status_code == 422
+    assert response.get_json()["error"] == (
+        "Invalid due_date: must be a date in YYYY-MM-DD format or null")
+
+def test_post_task_route_with_due_date():
+    response = app.test_client().post(
+        "/api/tasks", json={"title": "Pay rent", "user_id": 1, "due_date": "2026-11-01"})
+    assert response.status_code == 201
+    assert response.get_json()["due_date"] == "2026-11-01"

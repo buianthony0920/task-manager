@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from services.tags import create_tag
 from services.tasks import create_task, get_task, list_tasks, update_task
 from services.users import (
     get_notification_pref,
@@ -27,12 +28,12 @@ def list_tasks_route():
 def create_task_route():
     data = request.get_json(silent=True) or {}
     return jsonify(create_task(data.get("title"), data.get("user_id"),
-                               data.get("priority", 3))), 201
+                               data.get("priority", 3), data.get("due_date"))), 201
 
 @api.route("/tasks/<int:task_id>", methods=["PATCH"])
 def update_task_route(task_id):
     data = request.get_json(silent=True) or {}
-    return jsonify(update_task(task_id, data.get("priority")))
+    return jsonify(update_task(task_id, data.get("priority"), data.get("due_date")))
 
 @api.route("/users/<int:user_id>", methods=["GET"])
 def get_user_route(user_id):
@@ -50,3 +51,8 @@ def get_notification_pref_route(user_id):
 def set_notification_pref_route(user_id):
     data = request.get_json(silent=True) or {}
     return jsonify(set_notification_pref(user_id, data.get("notification_pref")))
+
+@api.route("/tags", methods=["POST"])
+def create_tag_route():
+    data = request.get_json(silent=True) or {}
+    return jsonify(create_tag(data.get("name"))), 201
