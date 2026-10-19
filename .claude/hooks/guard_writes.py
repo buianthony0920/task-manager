@@ -80,7 +80,18 @@ BASH_RULES = [
 
 
 def _relpath(file_path: str, root: str) -> str:
-    return os.path.relpath(os.path.abspath(os.path.join(root, file_path)), root).replace("\\", "/")
+    """Repo-relative path, lower-cased.
+
+    Windows and macOS file systems are case-insensitive, so Utils/errors.py IS
+    utils/errors.py. Compare in one case (Vector 1 fix) and resolve symlinks.
+    """
+    full = os.path.realpath(os.path.join(root, file_path))
+    rel = os.path.relpath(full, os.path.realpath(root)).replace("\\", "/")
+    return rel.casefold()
+
+
+BLOCKED = {p.casefold() for p in BLOCKED_PATHS}
+CONTENT_GUARDED_CF = {p.casefold() for p in CONTENT_GUARDED}
 
 
 def _new_content(tool_input: dict) -> str:
@@ -113,10 +124,10 @@ def main() -> int:
         return 0
     rel = _relpath(file_path, root)
 
-    if rel in BLOCKED_PATHS:
+    if rel in BLOCKED:
         return block(f"{rel} is a protected file.")
 
-    if rel in CONTENT_GUARDED and DB_URL.search(_new_content(tool_input)):
+    if rel in CONTENT_GUARDED_CF and DB_URL.search(_new_content(tool_input)):
         return block(f"{rel} would contain a hardcoded database connection string "
                      "(postgresql:// or sqlite:///). Connection strings must come from "
                      "environment variables, e.g. os.environ['DATABASE_URL'].")
